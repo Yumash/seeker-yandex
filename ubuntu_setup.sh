@@ -81,29 +81,38 @@ setup_seeker() {
         useradd -r -s /bin/false -d $SEEKER_PATH seeker
     fi
 
-    # Проверяем что мы находимся в директории с исходниками
+    # Проверяем что мы находимся в директории с исходниками или уже в целевой директории
     if [ ! -f "seeker.py" ]; then
         print_error "Файл seeker.py не найден в текущей директории. Убедитесь что вы запускаете скрипт из корня проекта."
         exit 1
     fi
 
-    # Создаем директории
+    # Создаем директории если они не существуют
     mkdir -p $SEEKER_PATH
     mkdir -p $SEEKER_PATH/logs
     mkdir -p $SEEKER_PATH/db
 
-    # Копируем файлы проекта (исключая ненужные файлы)
-    print_status "Копирование файлов проекта..."
-    rsync -av --exclude='venv' --exclude='.git' --exclude='__pycache__' --exclude='logs' --exclude='db' --exclude='.env' . $SEEKER_PATH/
-
-    # Копируем .env файл если он существует
-    if [ -f .env ]; then
-        cp .env $SEEKER_PATH/
+    # Копируем файлы проекта только если запускаем не из целевой директории
+    if [ "$(pwd)" != "$SEEKER_PATH" ]; then
+        print_status "Копирование файлов проекта из $(pwd) в $SEEKER_PATH..."
+        rsync -av --exclude='venv' --exclude='.git' --exclude='__pycache__' --exclude='logs' --exclude='db' . $SEEKER_PATH/
+        
+        # Копируем .env файл
+        if [ -f .env ]; then
+            print_status "Копирование .env файла..."
+            cp .env $SEEKER_PATH/
+        fi
+    else
+        print_status "Скрипт запущен из целевой директории $SEEKER_PATH - копирование файлов не требуется"
     fi
 
-    # Создаем виртуальное окружение Python
-    print_status "Создание виртуального окружения Python..."
-    python3 -m venv $SEEKER_PATH/venv
+    # Создаем виртуальное окружение Python если оно не существует
+    if [ ! -d "$SEEKER_PATH/venv" ]; then
+        print_status "Создание виртуального окружения Python..."
+        python3 -m venv $SEEKER_PATH/venv
+    else
+        print_status "Виртуальное окружение Python уже существует"
+    fi
 
     # Активируем виртуальное окружение и устанавливаем зависимости
     print_status "Установка Python зависимостей в виртуальное окружение..."
@@ -148,6 +157,10 @@ configure_apache() {
     print_status "Создание конфигурации Apache для домена ${DOMAIN}..."
 
     # Копируем шаблон конфигурации и заменяем плейсхолдеры
+    if [ -f "$APACHE_CONFIG" ]; then
+        print_warning "Конфигурация Apache уже существует, создаем резервную копию..."
+        cp $APACHE_CONFIG ${APACHE_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)
+    fi
     cp apache2_config.conf $APACHE_CONFIG
 
     # Заменяем плейсхолдеры на реальные значения
@@ -242,7 +255,13 @@ start_services() {
     systemctl enable apache2
 
     # Запускаем Seeker
-    systemctl start seeker
+    if systemctl is-active --quiet seeker; then
+        print_status "Перезапуск сервиса Seeker..."
+        systemctl restart seeker
+    else
+        print_status "Запуск сервиса Seeker..."
+        systemctl start seeker
+    fi
     systemctl status seeker --no-pager
 }
 
