@@ -217,7 +217,7 @@ Type=simple
 User=seeker
 Group=seeker
 WorkingDirectory=${SEEKER_PATH}
-Environment=PATH=${SEEKER_PATH}/venv/bin
+Environment=PATH=/usr/bin:/bin:/usr/local/bin:${SEEKER_PATH}/venv/bin
 EnvironmentFile=${SEEKER_PATH}/.env
 ExecStart=${SEEKER_PATH}/venv/bin/python3 ${SEEKER_PATH}/seeker.py -p ${SEEKER_PORT} --template 4
 Restart=always

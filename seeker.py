@@ -245,7 +245,30 @@ def server():
     port_free = False
     utils.print(f'{G}[+] {C}Port : {W}{port}\n')
     utils.print(f'{G}[+] {C}Starting PHP Server...{W}', end='')
-    cmd = ['php', '-S', f'0.0.0.0:{port}', '-t', f'template/{SITE}/']
+    # Ищем PHP в стандартных местах
+    php_paths = ['/usr/bin/php', '/usr/local/bin/php', 'php']
+    php_cmd = None
+    for php_path in php_paths:
+        try:
+            if php_path == 'php':
+                # Проверяем доступность через which
+                result = subp.run(['which', 'php'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    php_cmd = 'php'
+                    break
+            else:
+                # Проверяем существование файла
+                if path.exists(php_path):
+                    php_cmd = php_path
+                    break
+        except:
+            continue
+    
+    if php_cmd is None:
+        utils.print(f'{R}[-] {C}PHP not found! Please install PHP CLI{W}')
+        sys.exit()
+        
+    cmd = [php_cmd, '-S', f'0.0.0.0:{port}', '-t', f'template/{SITE}/']
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
